@@ -16,8 +16,8 @@ transform = transforms.Compose([transforms.ToTensor(),
                                transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))])
 
 batch_size = 4
-train_set = torchvision.datasets.CIFAR10(root='./data', train=True, download=False, transform=transform)
-test_set = torchvision.datasets.CIFAR10(root='./data', train=False, download=False, transform=transform)
+train_set = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
+test_set = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
 
 
 train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True)
@@ -60,9 +60,10 @@ class Net(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
+        # x = F.softmax(x, dim = 1)
         return x
         
-net = LeNet()
+net = Net()
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
@@ -70,18 +71,18 @@ optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 for epoch in range(2):  # loop over the dataset multiple times
 
     running_loss = 0.0
-    for i, data in enumerate(train_loader, 0):
+    for i, data in enumerate(train_loader, 0): #train_loader解包
         # get the inputs; data is a list of [inputs, labels]
         inputs, labels = data
 
         # zero the parameter gradients
-        optimizer.zero_grad()
+        optimizer.zero_grad() # 
 
         # forward + backward + optimize
         outputs = net(inputs)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
+        loss = criterion(outputs, labels) # output预测标签和真实标签进行交叉熵loss运算
+        loss.backward() #loss反向传播
+        optimizer.step() # 更新优化器
 
         # print statistics
         running_loss += loss.item()
@@ -92,7 +93,7 @@ for epoch in range(2):  # loop over the dataset multiple times
 print('Finished Training')
 
 PATH = './cifar_net.pth'
-torch.save(net.state_dict(), PATH)
+torch.save(net.state_dict(), PATH) # net训练好的权重文件保存到路径PATH
 
 dataiter = iter(test_loader)
 images, labels = next(dataiter)
@@ -101,19 +102,20 @@ imshow(torchvision.utils.make_grid(images))
 print('GroundTruth: ', ' '.join(f'{classes[labels[j]]:5s}' for j in range(4)))
 
 net = Net()
-net.load_state_dict(torch.load(PATH))
+net.load_state_dict(torch.load(PATH)) # 新建网络-加载-训练好的权重文件
 
 
 outputs = net(images)
-_, predicted = torch.max(outputs, 1)
+_, predicted = torch.max(outputs, 1) # 输入测试集图片 输出预测结果
 
 print('Predicted: ', ' '.join(f'{classes[predicted[j]]:5s}'
                               for j in range(4)))
 
 correct = 0
 total = 0
+# 计算准确率
 # since we're not training, we don't need to calculate the gradients for our outputs
-with torch.no_grad():
+with torch.no_grad(): # 不计算梯度-不进行训练
     for data in test_loader:
         images, labels = data
         # calculate outputs by running images through the network
